@@ -2,19 +2,14 @@ class RedirectRule < ActiveRecord::Base
   extend Redirector::RegexAttribute
   regex_attribute :source
 
-  has_many :request_environment_rules, :inverse_of => :redirect_rule, :dependent => :destroy
-
   attr_accessible :source,
                   :source_is_regex,
                   :destination,
                   :active,
-                  :source_is_case_sensitive,
-                  :request_environment_rules_attributes if Redirector.active_record_protected_attributes?
+                  :source_is_case_sensitive if Redirector.active_record_protected_attributes?
 
-  accepts_nested_attributes_for :request_environment_rules, :allow_destroy => true, :reject_if => :all_blank
-
-  validates :source, :destination, :presence => true
-  validates :active, :inclusion => { :in => ['0', '1', true, false] }
+  validates :source, :destination, presence: true
+  validates :active, inclusion: { in: ['0', '1', true, false] }
 
   before_save :strip_source_whitespace
 
@@ -37,18 +32,13 @@ class RedirectRule < ActiveRecord::Base
     SQL
   end
 
-  def self.match_for(source, environment)
-    match_scope = where(match_sql_condition.strip, {:true => true, :false => false, :source => source})
+  def self.match_for(source)
+    match_scope = where(match_sql_condition.strip, {:true => true, :false => false, source: source})
     match_scope = match_scope.order('redirect_rules.source_is_regex ASC, LENGTH(redirect_rules.source) DESC')
-    match_scope = match_scope.includes(:request_environment_rules)
-    match_scope = match_scope.references(:request_environment_rules) if Rails.version.to_i == 4
-    match_scope.detect do |rule|
-      rule.request_environment_rules.all? {|env_rule| env_rule.matches?(environment) }
-    end
   end
 
   def self.destination_for(source, environment)
-    rule = match_for(source, environment)
+    rule = match_for(source)
     rule.evaluated_destination_for(source) if rule
   end
 

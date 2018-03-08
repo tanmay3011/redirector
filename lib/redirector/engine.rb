@@ -2,7 +2,7 @@ module Redirector
   class Engine < ::Rails::Engine
     config.redirector = ActiveSupport::OrderedOptions.new
 
-    initializer "redirector.add_middleware", :after => 'build_middleware_stack' do |app|
+    initializer "redirector.add_middleware", after: 'build_middleware_stack' do |app|
       app.middleware.insert_before(Rack::Runtime, Redirector::Middleware)
     end
 
